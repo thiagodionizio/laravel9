@@ -1,0 +1,55 @@
+version: "3.7"
+
+services:
+    # image project
+    app:
+        container_name: tasktok_app
+        build:
+            context: .
+            dockerfile: Dockerfile
+        image: especializati/laravel9-app
+        restart: unless-stopped
+        working_dir: /var/www/
+        volumes:
+            - ./:/var/www
+        depends_on: 
+            - redis
+        networks: 
+            - tasktok_network_app
+    
+    # nginx
+    nginx:
+        container_name: tasktok_nginx
+        image: nginx:alpine
+        restart: unless-stopped
+        ports: 
+            - "8989:80"
+        volumes: 
+            - ./:/var/www
+            - ./docker/nginx/:/etc/nginx/conf.d/
+        networks: 
+            - tasktok_network_app
+    # queue
+    queue:
+        container_name: tasktok_queue
+        image: especializati/laravel9-app
+        restart: unless-stopped
+        command: "php artisan queue:work"
+        volumes: 
+            - ./:/var/www
+        depends_on: 
+            - redis
+            - app
+        networks: 
+            - tasktok_network_app
+
+    # redis
+    redis:
+        container_name: tasktok-redis
+        image: redis:latest
+        networks: 
+            - tasktok_network_app
+
+networks: 
+    tasktok_network_app:
+        driver: bridge
